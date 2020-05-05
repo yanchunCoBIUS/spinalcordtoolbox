@@ -17,6 +17,7 @@ import os
 import sys
 import tarfile
 import tempfile
+import urllib.parse
 import zipfile
 from shutil import rmtree
 from distutils.dir_util import copy_tree
@@ -212,12 +213,10 @@ def download_data(urls, verbose):
             session.mount('https://', HTTPAdapter(max_retries=retry))
             response = session.get(url, stream=True)
 
+            filename = os.path.basename(urllib.parse.urlparse(url).path)
             if "Content-Disposition" in response.headers:
                 _, content = cgi.parse_header(response.headers['Content-Disposition'])
                 filename = content["filename"]
-            else:
-                sct.printv("Unexpected: link doesn't provide a filename", type="warning")
-                continue
 
             tmp_path = os.path.join(tempfile.mkdtemp(), filename)
             sct.printv('Downloading %s...' % filename, verbose)
