@@ -103,8 +103,7 @@ def get_parser():
     return parser
 
 
-if __name__ == "__main__":
-    init_sct()
+def main():
     parser = get_parser()
     arguments = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
@@ -186,3 +185,8 @@ if __name__ == "__main__":
         rmtree(tmp_dir)
 
     printv(output, verbose)
+
+
+if __name__ == "__main__":
+    init_sct()
+    main()
