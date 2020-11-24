@@ -3,26 +3,17 @@
 Registration to template
 ########################
 
-This tutorial demonstrates how to use SCT's command-line scripts to register single-modality anatomical MRI scans to the PAM50 Template. SCT recommends that you read through the :ref:`pam50` page before starting this tutorial, as it provides an overview of the template, as well as context for why it is used.
+.. TODO: Add QC report checking to various sections
+.. TODO: Proofread registration_to_template
+.. TODO: Add images/videos to registration_to_template
+.. TODO: Create page that explains what warping fields are
+.. TODO: Write register multimodal section
 
-The following processing pipeline will be covered in this tutorial:
-
-  #. Prerequisite steps for registration
-
-     a. Spinal cord segmentation (``sct_deepseg_sc``)
-     b. Vertebral/disc labeling (``sct_label_vertebrae``)
-
-  #. Single-modality registration to template (``sct_register_to_template``)
-  #. Post-registration steps
-
-     a. Transforming template objects into subject coordinate spaces (``sct_warp_template``)
-     b. Computing spinal cord metrics (``sct_process_segmentation``)
-
-.. TODO: Update PAM50 template page with information from Registration section
+This tutorial demonstrates how to use SCT's command-line scripts to register an anatomical MRI scan to the PAM50 Template, then use the results of this registration to perform basic quantitative analysis. We recommend that you read through the :ref:`pam50` page before starting this tutorial, as it provides an overview of the template included with SCT, as well as context for why it is used.
 
 .. warning::
 
-   This tutorial uses sample MRI images that must be retrieved beforehand. Please download and unzip `sct_course_london20.zip <https://osf.io/bze7v/?action=download>`_ , then open up the unzipped folder in your terminal and verify its contents using ``ls``.
+   This tutorial uses sample MRI images that must be retrieved beforehand. Please download and unzip `sct_course_london20.zip <https://osf.io/bze7v/?action=download>`_, then open up the unzipped folder in your terminal and verify its contents using ``ls``.
 
    .. code:: sh
 
@@ -39,23 +30,409 @@ The following processing pipeline will be covered in this tutorial:
       # Output:
       # dmri  fmri  LICENSE.txt  mt  README.txt  t1  t2  t2s
 
+   .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord_segmentation/t2_image.png
+      :align: right
+      :figwidth: 8%
 
-Spinal cord segmentation
-************************
+      t2.nii.gz
+
+   We will start with T2-weighted images, so navigate to the ``t2`` directory and verify that it contains a T2-weighted anatomical image called ``t2.nii.gz``.
+
+   .. code:: sh
+
+      cd t2
+      ls
+      # Output:
+      # t2.nii.gz
+
+.. _segmentation-section:
+
+Segmenting the spinal cord
+**************************
+
+.. figure:: ../../../imgs/register/pipeline-1.png
+   :align: center
+   :figwidth: 75%
+
+   Steps performed by ``sct_deepseg_sc``.
 
 .. note::
 
-   If you have already completed the :ref:`spinalcord-segmentation` tutorial, your ``t2/`` directory should contain a file called ``t2_seg.nii.gz``. If so, you may skip this section and simply reuse this file instead.
+   If you have already completed the :ref:`spinalcord-segmentation` tutorial, your ``t2/`` directory should contain a file called ``t2_seg.nii.gz``. If so, you may skip the :ref:`segmentation-section` section and proceed with the :ref:`vert-labeling-section` section.
+
+Theory
+======
+
+First, we will run the ``sct_deepseg_sc`` command to segment the spinal cord from the anatomical image. The segmented spinal cord is a requirement for the vertebral/disc labeling stage that comes after.
+
+For a more in-depth look at the theory behind this command, please refer to the :ref:`spinalcord-segmentation` tutorial.
+
+Command
+=======
+
+.. code:: sh
+
+   sct_deepseg_sc -i t2.nii.gz -c t2 -qc ~/qc_singleSubj
+
+   # Input arguments:
+   #   - i: Input image
+   #   - c: Contrast of the input image
+   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the segmentation slice-by-slice
+
+   # Output files/folders:
+   #   - t2_seg.nii.gz: 3D binary mask of the segmented spinal cord
+
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord_segmentation/t2_propseg_before_after.png
+   :align: center
+   :figwidth: 50%
+
+   Input/output images for ``sct_deepseg_sc``.
+
+.. _vert-labeling-section:
 
 Vertebral/disc labeling
 ***********************
 
-Single modality registration to template
-****************************************
+.. figure:: ../../../imgs/register/pipeline-2.png
+   :align: center
+   :figwidth: 75%
 
-Transforming template objects into subject coordinate spaces
-************************************************************
+   Steps performed by ``sct_label_vertebrae`` and ``sct_label_utils``.
 
-Computing spinal cord metrics
-*****************************
+Theory
+======
 
+Next, the segmented spinal cord must be labeled to provide reference markers for matching the PAM50 template to subject's MRI. Either the vertebral levels or intervertebral discs can be used for the later registration steps; both types of labels are generated here. For vertebral levels, the convention is to place labels as though the vertebrae were projected onto the spinal cord, centered in the middle of the vertebral level. For discs, the convention is to place labels on the posterior tip of the disc.
+
+.. figure:: ../../../imgs/register/p47.png
+   :align: center
+   :figwidth: 25%
+
+   Conventions for vertebral and disc labels.
+
+The vertebral/disc labeling algorithm works as follows.
+
+#. The spinal cord is straightened to make it easier to process.
+#. Then, labeling is done using an automatic method that finds the C2-C3 disc, then finds neighbouring discs using a similarity measure with the PAM50 template at each specific level.
+
+   - The C2-C3 disc is used as a starting point because it is a distinct disc that is easy to detect (compared to, say, the T7-T9 discs, which are indistinct compared to one another).
+   - The labeling algorithm uses several priors from the template, including the probabilistic distance between adjacent discs and the size of the vertebral discs. These priors allow it to be robust enough to handle cases where instrumentation results in missing discs.
+
+#. Finally, the spinal cord and the labeled segmentation are both un-straightened.
+
+.. figure:: ../../../imgs/register/p48-2.png
+   :align: center
+   :figwidth: 25%
+
+   Example of missing discs due to instrumentation. ``sct_label_vertebrae`` is still able to label the vertebral levels.
+
+.. note::
+
+   Automatic vertebral labeling is not mandatory for template registration. Alternatively, you can manually label one, two, or more discs using the function ``sct_label_utils`` and the ``-create-viewer`` argument. More information can be found in the usage description, using ``sct_label_utils -h``.
+
+   Of note, if you provide more than 2 labels, there will be a non-linear transformation along z, which implies that everything above the top label and below the bottom label will be lost in the transformation. Therefore, if you are interested in regions outside of the specified labels, only use one or two labels, but no more.
+
+Command
+=======
+
+.. code:: sh
+
+   sct_label_vertebrae -i t2.nii.gz -s t2_seg.nii.gz -c t2 -qc ~/qc_singleSubj
+
+   # Input arguments:
+   #   - i: Input image
+   #   - c: Contrast of the input image
+   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the segmentation slice-by-slice
+
+   # Output files/folders:
+   #   - t2_seg_labeled.nii.gz: Image containing the labeled spinal cord. Each voxel of the segmented spinal cord is
+   #                            labeled with a vertebral level as though the vertebrae were projected onto the spinal
+   #                            cord. The convention for label values is C3-->3, C4-->4, etc.
+   #   - t2_seg_labeled_discs.nii.gz: Image containing single-voxel intervertebral disc labels (without the segmented
+   #                                  spinal cord). Each label is centered within the disc. The convention for label
+   #                                  values is C2/C3-->3, C3/C4-->4, etc. This file also contains additional labels
+   #                                  (such as the pontomedullary junction and groove), but these are not yet used.
+   #   - straight_ref.nii.gz: The straightened input image produced by the intermediate straightening step. Can be
+   #                          re-used by other SCT functions that need a straight reference space.
+   #   - warp_curve2straight.nii.gz: The 4D warping field that defines the transform from the original curved
+   #                                 anatomical image to the straightened image.
+   #   - warp_straight2curve.nii.gz: The 4D warping field that defines the inverse transform from the straightened
+   #                                 anatomical image back to the original curved image.
+   #   - straightening.cache: If sct_label_vertebrae is run another time, the presence of this file (plus
+   #                          straight_ref.nii.gz and the two warping fields) will cause the straightening step to be
+   #                          skipped, thus saving processing time.
+
+.. figure:: ../../../imgs/register/p57.png
+   :align: center
+   :figwidth: 50%
+
+   Input/output images for ``sct_label_vertebrae``.
+
+The most relevant output files are ``t2_seg_labeled.nii.gz`` and ``t2_seg_labeled_discs.nii.gz``. Either of them can be subsequently used for the template registration and/or for computing metrics along the cord. Of the two, we will focus on the ``t2_seg_labeled.nii.gz`` image for the remainder of this tutorial.
+
+.. note::
+
+   If the labeling fails, you may also manually label the C2-C3 disc using ``sct_label_utils``, then re-run ``sct_label_vertebrae`` with this initialized image.
+
+Not all of the labels produced by ``sct_label_vertebrae`` are necessary. To discard the extra vertebral levels, we use ``sct_label_utils`` to create a new label image containing only 2 of the labels. These points are used to match the levels of the subject to the levels of the template, and correspond to the top and bottom vertebrae we wish to use for image registration.
+
+.. code:: sh
+
+   sct_label_utils -i t2_seg_labeled.nii.gz -vert-body 3,9 -o t2_labels_vert.nii.gz
+
+   # Input arguments:
+   #   - i: Input image containing a spinal cord labeled with vertebral levels
+   #   - vert-body: The vertebral levels to use when creating new point labels
+   #   - o: Output filename
+
+   # Output files/folders:
+   #   - t2_labels_vert.nii.gz: Image containing the 2 single-voxel vertebral labels
+
+.. figure:: ../../../imgs/register/p59.png
+   :align: center
+   :figwidth: 50%
+
+   Input/output images for ``sct_label_utils``.
+
+.. _registration-section:
+
+Registering the anatomical image to the PAM50 template
+******************************************************
+
+.. figure:: ../../../imgs/register/pipeline-3.png
+   :align: center
+   :figwidth: 75%
+
+   Steps performed by ``sct_register_to_template``
+
+Theory
+======
+
+Now that we have the labeled spinal cord, we can register the anatomical image to the template.
+
+.. figure:: ../../../imgs/register/p50-1.png
+   :align: right
+   :figwidth: 30%
+
+   Spinal cord straighting using thin-plate spline interpolation.
+
+Internally, the ``sct_register_to_template`` command begins with a initial straightening step.  The straightening works by finding, for each point along the spinal cord, the mathematical transformation to go from a curved centerline to a straight centerline. A major advantage of the implemented straightening algorithm, is that instead of doing a slice-wise translation (which does not account for the through-plane deformation), the algorithm computes the orthogonal plane at each point along the centerline, then constructs a straight space in the output using thin-plate spline interpolation. This allows the inner geometry of the cord to be preserved. Another advantage is that it outputs a forward and a backward warping field (ITK-compatible), which could be concatenated with subsequent transformations, as will be seen later.
+
+Once straightened, the next step involves an affine transformation to match the vertebral levels of the subject to that of the template using. This step focuses only on the coordinates of the labels, and does not consider the shape of the spinal cord (which is handled by the next step). Together, the straightening and level matching comprise "Step 0" of ``sct_register_to_template``.
+
+After this, a multi-step nonrigid deformation is estimated to match the subject’s cord shape to the template. The default configuration starts with a step to handle large deformations ("Step 1"). This is followed by a step for fine adjustments ("Step 2").
+
+The default settings should work for most cases. However, SCT provides a variety of algorithms with pros and cons depending on your data. You might want to play with the parameters of these steps to optimize registration for your particular contrast, resolution, and spinal cord geometry. The available settings are explored further in the :ref:`customizing-registration-section` section.
+
+Command
+=======
+
+.. code:: sh
+
+   sct_register_to_template -i t2.nii.gz -s t2_seg.nii.gz -l t2_labels_vert.nii.gz -c t2 -qc ~/qc_singleSubj
+
+   # Input arguments:
+   #   - i: Input image
+   #   - s: Segmented spinal cord corresponding to the input image
+   #   - l: One or two labels located at the center of the spinal cord, on the mid-vertebral slice
+   #   - c: Contrast of the image. Specifying this determines which image from the template will be used.
+   #     (e.g. t2 --> PAM50_t2.nii.gz)
+   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the segmentation slice-by-slice
+
+   # Output files/folders:
+   #   - anat2template.nii.gz: The anatomical subject image (in this case, t2.nii.gz) warped to the template space.
+   #   - template2anat.nii.gz: The template image (in this case, PAM50_t2.nii.gz) warped to the anatomical subject
+   #                           space.
+   #   - warp_anat2template.nii.gz: The 4D warping field that defines the transform from the anatomical image to the
+   #                                template image.
+   #   - warp_template2anat.nii.gz: The 4D warping field that defines the inverse transform from the template image to
+   #                                the anatomical image.
+
+.. figure:: ../../../imgs/register/p61.png
+   :align: center
+   :figwidth: 50%
+
+   Input/output images for ``sct_register_to_template``.
+
+The most relevant of the output files is ``warp_template2anat.nii.gz``, which will be used to transform the unbiased PAM50 template into the subject space (i.e. to match the ``t2.nii.gz`` anatomical image).
+
+.. _customizing-registration-section:
+
+Customizing the ``sct_register_to_template`` command
+****************************************************
+
+While the default usage of ``sct_register_to_template`` is simple enough, the underlying command provides many options to adapt the registration process to your specific data and pipeline. The subsections below provide an overview of common tweaks to the command.
+
+Because choosing the right configuration for your data can be overwhelming, SCT provides a forum where you can ask for clarification and guidance.
+
+The ``-param`` argument
+=======================
+
+The flag -param lets you select registration parameters at each step. Below is a sample input for ``-param``:
+
+.. code-block::
+
+   # Note: Command has been split up for readability. Normally, you would input this with no line breaks.
+   -param step=0,type=label,dof=Tx_Ty_Tz_Sz:
+          step=1,type=imseg,algo=centermassrot,metric=MeanSquares,iter=10,smooth=0,gradStep=0.5,slicewise=0,smoothWarpXY=2,pca_eigenratio_th=1.6:
+          step=2,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=3,smooth=1,gradStep=0.5,slicewise=0,smoothWarpXY=2,pca_eigenratio_th=1.6
+
+This long string of values defines a 3-step transformation. Each step is separated by a ``:`` character, and begins with ``step=#``, where ``#`` can be ``0, 1, 2, etc``. At each step, a distinct transformation is computed:
+
+* **Step 0:** Straighten the spinal cord, then match the subject labels to the template labels.
+* **Step 1:** Nonrigid deformation, first pass. Deals with large deformations in the spinal cord.
+* **Step 2:** Nonrigid deformation, second pass. Applies fine cord shape adjustments.
+
+Typically, step 0 is not altered. However, Steps 1 and 2 can be tweaked, and additional steps (e.g. 3, 4) can be added. Some of the common parameters to tweak include:
+
+   .. figure:: ../../../imgs/register/p52.png
+      :align: right
+      :figwidth: 40%
+
+      Visualization of algorithms to choose from for the ``algo`` parameter of ``-param``.
+
+* ``algo`` This is the algorithm used to compute the nonrigid deformation. Choice of algorithm depends on how coarse/fine you want your transformation to be. This depends on which step you are modifying (Step 1, step 2, step 3, etc.) as well as the nature of the spinal cord you are working with.
+
+   - **translation**: axial translation (x-y)
+   - **rigid**: transaltion + rotation about z axis
+   - **affine**:
+   - **b-splinesyn**: based on ants binaries
+   - **syn**: (not bspline regularized)
+   - **slicereg**: ANTs+Us, regualarized translation across slices that is regularized across S-I (used with segmentation for a pre-alignment cord centerline + template cord centerline -- basically alignment of the core centerline)
+   - **centermassrot**: similar to slicereg, center of mass of segmentation on each slice and then align with center of mass in the template space, also does a rotation in case your subject turned neck or sometimes compression
+   - **columnwise**: in case of highly compressed cords (suggested by UofT Alan Martin) it basically takes the segmentation and tries to match the compressed segmentation with the cord segmentation of the template. nonlinear deformation with much more degree of freedom than the syn based approaches
+
+* ``type``: Carefully chose type={im, seg} based on the quality of your data, and the similarity with the template. Ideally, you would always choose type=im . However, if you find that there are artifacts of image features (e.g., no CSF/cord contrast) that could compromise the registration, then use type=seg instead. Of course, if you choose type=seg , make sure your segmentation is good (manually adjust it if it is not). By default, the sct_register_to_template relies on the segmentations only because it was found to be more robust to the existing variety of MRIs. This last step that is basically a slicewise nonlinear deformation there are a lot of algorithms that are available in SCT. Those algorithms can either be run on the image or could be run on the segmentation. Highly artifacted EPI the csf is missing on one slice, appearing on other slice, distortions, DIPS artifacts, etc. You know that your segmetnation is correct because you manually corrected it, you might want to rely on the segmentation mroe than the image in order to register your spinal cord to the template (there is a possibility to do that)
+* ``metric``: Adjust metric based on type. With type=im , use metric=CC (accurate but long) or MI (fast, but requires enough voxels) With type=seg , use metric=MeanSquares.
+* ``slicewise``: All transformations are constrained in Z direction, though estimation can be done slice-wise or volume-wise: -param slicewise={0, 1}
+
+The ``-ref`` argument
+=====================
+
+The flag ``-ref`` lets you select the destination for registration: either the template (default) or the subject’s native space. The main difference is that when ``-ref template`` is selected,
+the cord is straightened, whereas with ``-ref subject``, it is not.
+
+When should you use ``-ref subject``? If your image is acquired axially with highly anisotropic resolution (e.g. 0.7x0.7x5mm), the straightening will produce through-plane interpolation errors. In that case, it is better to register the template to the subject space to avoid such inaccuracies.
+
+The ``-ldisc`` argument
+=======================
+
+The approach described previously uses two labels at the mid-vertebral level to register the template, which is fine if you are only interested in a relatively small region (e.g. C2 —> C7). However, if your volume spans a large superior-inferior length (e.g., C2 —> L1), the linear scaling between your subject and the template might produce inaccurate vertebral level matching between C2 and L1. In that case, you might prefer to rely on all inter-vertebral discs for a more accurate registration.
+
+Conversely, if you have a very small FOV (e.g., covering only C3/C4), you can create a unique label at disc C3/C4 (value=4) and use -ldisc for registration. In that case, a single translation (no scaling) will be performed between the template and the subject.
+
+.. note::
+   If more than 2 labels are provided, ``-ldisc`` is not compatible with ``-ref subject``. For more information, please see the help: sct_register_to_template -h
+
+.. _transforming-template-section:
+
+Transforming template objects into the subject space
+****************************************************
+
+.. figure:: ../../../imgs/register/pipeline-4.png
+   :align: center
+   :figwidth: 75%
+
+   Steps performed by ``sct_warp_template``.
+
+Theory
+======
+
+Once the transformations are estimated, we can apply the resulting warping field to the template to bring it into to the subject’s native space.
+
+Command
+=======
+
+.. code:: sh
+
+   sct_warp_template -d t2.nii.gz -w warp_template2anat.nii.gz -a 0 -qc ~/qc_singleSubj
+
+   # Output:
+   #   - label/template/: This directory contains the entirety of the PAM50 template, transformed into the subject space (i.e. the ``t2.nii.gz`` anatomical image).
+
+.. figure:: ../../../imgs/register/p67.png
+   :align: center
+   :figwidth: 50%
+
+   Input/output images for ``sct_warp_template``.
+
+The ``label/template`` directory contains 15 template objects. (The full list can be found on the :ref:`pam50` page.) The most relevant of these 15 files for this tutorial is ``PAM50_levels.nii.gz``, which will be used to compute the the cross-sectional area (CSA) aggregated across vertebral levels.
+
+.. _compute-metrics-section:
+
+Computing metrics (CSA and shape analysis)
+******************************************
+
+Once the PAM50 has been registered to the subject’s space, we can use it to do some quantitative analysis. This section demonstrates how to compute the cross-sectional area (CSA) of the spinal cord using ``sct_process_segmentation`` command.
+
+By default, sct_process_segmentation will output a file called csa.csv, which contains CSA results (mean and STD) as well as the angles between the cord centerline and the normal to the axial plane. Angle_AP corresponds to the angle about the AP axis, while angle_RL corresponds to the angle about the RL axis. These angles are used to correct the CSA, therefore if you obtain inconsistent CSA values, it it a good habit to verify the value of these angles.
+
+.. figure:: ../../../imgs/register/p68-edited.png
+   :align: center
+   :figwidth: 50%
+
+   Visualization of CSA, as well as the angles (AP, RL) used to compute the CSA.
+
+Averaging CSA across vertebral levels
+=====================================
+
+First, we  we compute the cord cross-sectional area (CSA) and average it between C3 and C4 vertebral levels. To specify these vertebral levels, we use the ``-vert`` argument.
+
+.. code:: sh
+
+   sct_process_segmentation -i t2_seg.nii.gz -vert 3:4 -o csa_c3c4.csv
+
+This command generates a csv file named ``csa_c3c4.csv``, which is partially replicated in the table below.
+
+.. csv-table:: CSA values computed for C3 and C4 vertebral levels (Averaged)
+   :file: csa_c3c4.csv
+   :header-rows: 1
+
+.. note::
+
+   The ``-vert`` flag used here relies on the vertebral labels defined by the ``-vertfile`` argument. The default value for ``-vertfile`` is ``./label/template/PAM50_levels.nii.gz``, so it is assumed that you have generated this file using the previous ``sct_warp_template`` command. However, you may specify a different vertebral label file by including the ``-vertfile`` argument.
+
+   .. code:: sh
+
+      sct_process_segmentation -i t2_seg.nii.gz -vert 3:4 -vertfile t2_seg_labeled.nii.gz -o csa_c3c4.csv
+
+Computing CSA on a per-level basis
+==================================
+
+Next, we will compute CSA for each individual vertebral level (rather than averaging) by using the ``-perlevel`` argument.
+
+.. code:: sh
+
+   sct_process_segmentation -i t2_seg.nii.gz -vert 3:4 -perlevel 1 -o csa_perlevel.csv
+
+This command generates a csv file named ``csa_perlevel.csv``, which is partially replicated in the table below.
+
+.. csv-table:: CSA values computed for C3 and C4 vertebral levels
+   :file: csa_perlevel.csv
+   :header-rows: 1
+
+Computing CSA on a per-slice basis
+==================================
+
+Finally, to compute CSA for individual slices, set the ``-perslice`` argument to 1, combined with the ``-z`` argument to specify slice numbers (or a range of slices).
+
+.. code:: sh
+
+   sct_process_segmentation -i t2_seg.nii.gz -z 30:35 -perslice 1 -o csa_perslice.csv
+
+This command generates a csv file named ``csa_perslice.csv``, which is partially replicated in the table below.
+
+.. csv-table:: CSA values across slices 30 to 35
+   :file: csa_perslice.csv
+   :header-rows: 1
+
+Shape analysis
+==============
+
+The csv files generated by ``sct_process_segmentation`` also include metrics to analyse the shape of the spinal cord in the axial plane, such as ellipticity, antero-posterior and right-left dimensions. These are of particular interest for studying cord compression. See [Martin et al. BMJ Open 2018] for an example application in degenerative cervical myelopathy.
+
+.. figure:: ../../../imgs/register/p70-1.png
+   :align: center
+   :figwidth: 50%
+
+   Additional shape metrics computed by ``sct_process_segmentation``.
