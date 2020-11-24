@@ -17,12 +17,17 @@ multi-center studies, with the goal of improving patient diagnosis and
 prognosis and helping the discovery of new biomarkers of spinal-related
 diseases.
 
-PAM50 is one such template for MRI of the full spinal cord and brainstem, and
-is included in your installation of SCT. It has the following features:
+To perform template-based analysis, a template is needed. Templates act as a common reference
+space to realign each subject to. PAM50 is the template included in each installation of SCT;
+"PAM" stands for “Polytechnique”, “Aix-Marseille University” and “Montreal Neurological
+Institute”, the three institutions that collaborated to develop the template.
+
+The PAM50 template has the following features:
 
 * It is available for T1-, T2-and T2*-weighted MRI contrast.
-* It is compatible with the ICBM152 brain template (a.k.a. MNI template), allowing to conduct simultaneous brain/spine studies within the same coordinate system.
-* It includes atlases of white matter pathways and gray matter subregions.
+* It is compatible with the ICBM152 brain template (a.k.a. MNI template), allowing researchers to conduct simultaneous brain/spine studies within the same coordinate system.
+* It includes a probabilistic atlas for white matter, gray metter, and CSF regions. (Note: Probabilistic atlases are not binary masks, but instead range between 0 and 1 to account for the `partial volume effect <http://mriquestions.com/partial-volume-effects.html>`_.)
+* It is a straightened template rather than a curved one.
 
 
 Template (``PAM50/template``)
