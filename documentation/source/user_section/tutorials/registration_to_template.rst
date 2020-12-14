@@ -3,12 +3,6 @@
 Registration to template
 ########################
 
-.. TODO: Add QC report checking to various sections
-.. TODO: Proofread registration_to_template
-.. TODO: Add images/videos to registration_to_template
-.. TODO: Create page that explains what warping fields are
-.. TODO: Write register multimodal section
-
 This tutorial demonstrates how to use SCT's command-line scripts to register an anatomical MRI scan to the PAM50 Template, then use the results of this registration to perform basic quantitative analysis. We recommend that you read through the :ref:`pam50` page before starting this tutorial, as it provides an overview of the template included with SCT, as well as context for why it is used.
 
 .. warning::
