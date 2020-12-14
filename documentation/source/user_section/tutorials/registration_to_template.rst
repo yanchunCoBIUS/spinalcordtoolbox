@@ -41,8 +41,8 @@ This tutorial demonstrates how to use SCT's command-line scripts to register an 
 
 .. _segmentation-section:
 
-Segmenting the spinal cord
-**************************
+Step 1: Segmenting the spinal cord
+**********************************
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-1.png
    :align: center
@@ -52,17 +52,15 @@ Segmenting the spinal cord
 
 .. note::
 
-   If you have already completed the :ref:`spinalcord-segmentation` tutorial, your ``t2/`` directory should contain a file called ``t2_seg.nii.gz``. If so, you may skip the :ref:`segmentation-section` section and proceed with the :ref:`vert-labeling-section` section.
+   The :ref:`spinalcord-segmentation` tutorial provides a more in-depth look at spinal cord segmentation. If you have already completed that tutorial, your ``t2/`` directory should contain a file called ``t2_seg.nii.gz``. If it does, you may skip this section and proceed with the :ref:`vert-labeling-section` section.
 
 Theory
 ======
 
 First, we will run the ``sct_deepseg_sc`` command to segment the spinal cord from the anatomical image. The segmented spinal cord is a requirement for the vertebral/disc labeling stage that comes after.
 
-For a more in-depth look at the theory behind this command, please refer to the :ref:`spinalcord-segmentation` tutorial.
-
-Command
-=======
+Command: ``sct_deepseg_sc``
+===========================
 
 .. code:: sh
 
@@ -84,8 +82,8 @@ Command
 
 .. _vert-labeling-section:
 
-Vertebral/disc labeling
-***********************
+Step 2: Vertebral/disc labeling
+*******************************
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-2.png
    :align: center
@@ -96,7 +94,24 @@ Vertebral/disc labeling
 Theory
 ======
 
-Next, the segmented spinal cord must be labeled to provide reference markers for matching the PAM50 template to subject's MRI. Either the vertebral levels or intervertebral discs can be used for the later registration steps; both types of labels are generated here. For vertebral levels, the convention is to place labels as though the vertebrae were projected onto the spinal cord, centered in the middle of the vertebral level. For discs, the convention is to place labels on the posterior tip of the disc.
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/instrumentation-missing-discs.png
+   :align: right
+   :figwidth: 25%
+
+   ``sct_label_vertebrae`` is able to label vertebral levels despite missing discs due to instrumentation.
+
+Next, the segmented spinal cord must be labeled to provide reference markers for matching the PAM50 template to subject's MRI.  The vertebral/disc labeling algorithm works as follows:
+
+  #. The spinal cord is straightened to make it easier to process.
+  #. Then, labeling is done using an automatic method that finds the C2-C3 disc, then finds neighbouring discs using a similarity measure with the PAM50 template at each specific level.
+
+     - The C2-C3 disc is used as a starting point because it is a distinct disc that is easy to detect (compared to, say, the T7-T9 discs, which are indistinct compared to one another).
+     - The labeling algorithm uses several priors from the template, including the probabilistic distance between adjacent discs and the size of the vertebral discs. These priors allow it to be robust enough to handle cases where instrumentation results in missing discs.
+
+  #. Finally, the spinal cord and the labeled segmentation are both un-straightened.
+
+
+Label files are produced for both vertebral levels and intervertebral discs, and either can be used for the later registration steps. For vertebral levels, the convention is to place labels as though the vertebrae were projected onto the spinal cord, centered in the middle of the vertebral level. For discs, the convention is to place labels on the posterior tip of the disc.
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/vertebral-labeling-conventions.png
    :align: center
@@ -104,30 +119,8 @@ Next, the segmented spinal cord must be labeled to provide reference markers for
 
    Conventions for vertebral and disc labels.
 
-The vertebral/disc labeling algorithm works as follows.
-
-#. The spinal cord is straightened to make it easier to process.
-#. Then, labeling is done using an automatic method that finds the C2-C3 disc, then finds neighbouring discs using a similarity measure with the PAM50 template at each specific level.
-
-   - The C2-C3 disc is used as a starting point because it is a distinct disc that is easy to detect (compared to, say, the T7-T9 discs, which are indistinct compared to one another).
-   - The labeling algorithm uses several priors from the template, including the probabilistic distance between adjacent discs and the size of the vertebral discs. These priors allow it to be robust enough to handle cases where instrumentation results in missing discs.
-
-#. Finally, the spinal cord and the labeled segmentation are both un-straightened.
-
-.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/instrumentation-missing-discs.png
-   :align: center
-   :figwidth: 25%
-
-   Example of missing discs due to instrumentation. ``sct_label_vertebrae`` is still able to label the vertebral levels.
-
-.. note::
-
-   Automatic vertebral labeling is not mandatory for template registration. Alternatively, you can manually label one, two, or more discs using the function ``sct_label_utils`` and the ``-create-viewer`` argument. More information can be found in the usage description, using ``sct_label_utils -h``.
-
-   Of note, if you provide more than 2 labels, there will be a non-linear transformation along z, which implies that everything above the top label and below the bottom label will be lost in the transformation. Therefore, if you are interested in regions outside of the specified labels, only use one or two labels, but no more.
-
-Command
-=======
+Command: ``sct_label_vertebrae``
+================================
 
 .. code:: sh
 
@@ -156,19 +149,22 @@ Command
    #                          straight_ref.nii.gz and the two warping fields) will cause the straightening step to be
    #                          skipped, thus saving processing time.
 
+.. note::
+
+   If the labeling fails, you may also manually label the C2-C3 disc using ``sct_label_utils``, then re-run ``sct_label_vertebrae`` with this initialized image.
+
+The most relevant output files are ``t2_seg_labeled.nii.gz`` and ``t2_seg_labeled_discs.nii.gz``. Either of them can be subsequently used for the template registration and/or for computing metrics along the cord. Of the two, we will focus on the ``t2_seg_labeled.nii.gz`` image for the remainder of this tutorial.
+
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_label_vertebrae.png
    :align: center
    :figwidth: 50%
 
    Input/output images for ``sct_label_vertebrae``.
 
-The most relevant output files are ``t2_seg_labeled.nii.gz`` and ``t2_seg_labeled_discs.nii.gz``. Either of them can be subsequently used for the template registration and/or for computing metrics along the cord. Of the two, we will focus on the ``t2_seg_labeled.nii.gz`` image for the remainder of this tutorial.
+Command: ``sct_label_utils``
+============================
 
-.. note::
-
-   If the labeling fails, you may also manually label the C2-C3 disc using ``sct_label_utils``, then re-run ``sct_label_vertebrae`` with this initialized image.
-
-Not all of the labels produced by ``sct_label_vertebrae`` are necessary. To discard the extra vertebral levels, we use ``sct_label_utils`` to create a new label image containing only 2 of the labels. These points are used to match the levels of the subject to the levels of the template, and correspond to the top and bottom vertebrae we wish to use for image registration.
+Not all of the labels produced by ``sct_label_vertebrae`` are necessary for registration. To discard the extra vertebral levels, we use ``sct_label_utils`` to create a new label image containing only 2 of the labels. These points are used to match the levels of the subject to the levels of the template, and correspond to the top and bottom vertebrae we wish to use for image registration.
 
 .. code:: sh
 
@@ -188,10 +184,16 @@ Not all of the labels produced by ``sct_label_vertebrae`` are necessary. To disc
 
    Input/output images for ``sct_label_utils``.
 
+.. note::
+
+   As an alternative to automatic labeling, you may choose to label the spinal cord manually. ``sct_label_utils`` provides a ``-create-viewer`` argument which lets you select labels using a GUI coordinate picker. More information can be found in the usage description, using ``sct_label_utils -h``.
+
+   If you provide more than 2 labels, there will be a non-linear transformation along z, which implies that everything above the top label and below the bottom label will be lost in the transformation. Therefore, if you are interested in regions outside of the specified labels, only use one or two labels, but no more.
+
 .. _registration-section:
 
-Registering the anatomical image to the PAM50 template
-******************************************************
+Step 3: Registering the anatomical image to the PAM50 template
+**************************************************************
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-3.png
    :align: center
@@ -216,10 +218,12 @@ Once straightened, the next step involves an affine transformation to match the 
 
 After this, a multi-step nonrigid deformation is estimated to match the subject’s cord shape to the template. The default configuration starts with a step to handle large deformations ("Step 1"). This is followed by a step for fine adjustments ("Step 2").
 
-The default settings should work for most cases. However, SCT provides a variety of algorithms with pros and cons depending on your data. You might want to play with the parameters of these steps to optimize registration for your particular contrast, resolution, and spinal cord geometry. The available settings are explored further in the :ref:`customizing-registration-section` section.
+.. note::
 
-Command
-=======
+   The default settings should work for most cases. However, SCT provides a variety of algorithms with pros and cons depending on your data. You might want to play with the parameters of these steps to optimize registration for your particular contrast, resolution, and spinal cord geometry. The available settings are explored further in the :ref:`customizing-registration-section` section.
+
+Command: ``sct_register_to_template``
+=====================================
 
 .. code:: sh
 
@@ -242,18 +246,18 @@ Command
    #   - warp_template2anat.nii.gz: The 4D warping field that defines the inverse transform from the template image to
    #                                the anatomical image.
 
+The most relevant of the output files is ``warp_template2anat.nii.gz``, which will be used to transform the unbiased PAM50 template into the subject space (i.e. to match the ``t2.nii.gz`` anatomical image).
+
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_register_to_template.png
    :align: center
    :figwidth: 50%
 
    Input/output images for ``sct_register_to_template``.
 
-The most relevant of the output files is ``warp_template2anat.nii.gz``, which will be used to transform the unbiased PAM50 template into the subject space (i.e. to match the ``t2.nii.gz`` anatomical image).
-
 .. _transforming-template-section:
 
-Transforming template objects into the subject space
-****************************************************
+Step 4: Transforming template objects into the subject space
+************************************************************
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-4.png
    :align: center
@@ -276,20 +280,20 @@ Command
    # Output:
    #   - label/template/: This directory contains the entirety of the PAM50 template, transformed into the subject space (i.e. the ``t2.nii.gz`` anatomical image).
 
+The ``label/template`` directory contains 15 template objects. (The full list can be found on the :ref:`pam50` page.) The most relevant of these 15 files for this tutorial is ``PAM50_levels.nii.gz``, which will be used to compute the the cross-sectional area (CSA) aggregated across vertebral levels.
+
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_warp_template.png
    :align: center
    :figwidth: 50%
 
    Input/output images for ``sct_warp_template``.
 
-The ``label/template`` directory contains 15 template objects. (The full list can be found on the :ref:`pam50` page.) The most relevant of these 15 files for this tutorial is ``PAM50_levels.nii.gz``, which will be used to compute the the cross-sectional area (CSA) aggregated across vertebral levels.
-
 .. _compute-metrics-section:
 
-Computing metrics (CSA and shape analysis)
-******************************************
+Step 5: Computing metrics (CSA and shape analysis)
+**************************************************
 
-Once the PAM50 has been registered to the subject’s space, we can use it to do some quantitative analysis. This section demonstrates how to compute the cross-sectional area (CSA) of the spinal cord using ``sct_process_segmentation`` command.
+Once the PAM50 template has been registered to the subject’s space, we can use it to do some quantitative analysis. This section demonstrates how to compute the cross-sectional area (CSA) of the spinal cord using ``sct_process_segmentation`` command.
 
 By default, sct_process_segmentation will output a file called csa.csv, which contains CSA results (mean and STD) as well as the angles between the cord centerline and the normal to the axial plane. Angle_AP corresponds to the angle about the AP axis, while angle_RL corresponds to the angle about the RL axis. These angles are used to correct the CSA, therefore if you obtain inconsistent CSA values, it it a good habit to verify the value of these angles.
 
