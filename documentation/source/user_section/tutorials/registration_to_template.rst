@@ -24,7 +24,7 @@ This tutorial demonstrates how to use SCT's command-line scripts to register an 
       # Output:
       # dmri  fmri  LICENSE.txt  mt  README.txt  t1  t2  t2s
 
-   .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/spinalcord_segmentation/t2_image.png
+   .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord_segmentation/t2_image.png
       :align: right
       :figwidth: 8%
 
@@ -76,7 +76,7 @@ Command
    # Output files/folders:
    #   - t2_seg.nii.gz: 3D binary mask of the segmented spinal cord
 
-.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/spinalcord_segmentation/t2_propseg_before_after.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord_segmentation/t2_propseg_before_after.png
    :align: center
    :figwidth: 50%
 
