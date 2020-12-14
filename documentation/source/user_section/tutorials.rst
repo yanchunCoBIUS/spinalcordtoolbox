@@ -12,6 +12,7 @@ SCT provides a set of step-by-step tutorials demonstrating advanced usage of the
   tutorials/spinalcord_segmentation
   tutorials/correcting_sct_propseg
   tutorials/registration_to_template
+  tutorials/customizing_registration
   tutorials/registration_multimodal
 
 This section is a work in progress. In the meanwhile, please refer to the :ref:`sct_courses` section for
