@@ -129,7 +129,7 @@ Command: ``sct_label_vertebrae``
    # Input arguments:
    #   - i: Input image
    #   - c: Contrast of the input image
-   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the segmentation slice-by-slice
+   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the results slice-by-slice.
 
    # Output files/folders:
    #   - t2_seg_labeled.nii.gz: Image containing the labeled spinal cord. Each voxel of the segmented spinal cord is
@@ -235,7 +235,7 @@ Command: ``sct_register_to_template``
    #   - l: One or two labels located at the center of the spinal cord, on the mid-vertebral slice
    #   - c: Contrast of the image. Specifying this determines which image from the template will be used.
    #     (e.g. t2 --> PAM50_t2.nii.gz)
-   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the segmentation slice-by-slice
+   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the results slice-by-slice.
 
    # Output files/folders:
    #   - anat2template.nii.gz: The anatomical subject image (in this case, t2.nii.gz) warped to the template space.
@@ -277,8 +277,15 @@ Command
 
    sct_warp_template -d t2.nii.gz -w warp_template2anat.nii.gz -a 0 -qc ~/qc_singleSubj
 
+   # Input arguments:
+   #   - d: Destination image the template will be warped to.
+   #   - w: Warping field (template space to anatomical space).
+   #   - a: Whether or not to also warp the white matter atlas.
+   #   - qc: Directory for Quality Control reporting. QC reports allow us to evaluate the results slice-by-slice.
+
    # Output:
-   #   - label/template/: This directory contains the entirety of the PAM50 template, transformed into the subject space (i.e. the ``t2.nii.gz`` anatomical image).
+   #   - label/template/: This directory contains the entirety of the PAM50 template, transformed into the subject
+   #                      space (i.e. the t2.nii.gz anatomical image).
 
 The ``label/template`` directory contains 15 template objects. (The full list can be found on the :ref:`pam50` page.) The most relevant of these 15 files for this tutorial is ``PAM50_levels.nii.gz``, which will be used to compute the the cross-sectional area (CSA) aggregated across vertebral levels.
 
