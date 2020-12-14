@@ -24,7 +24,7 @@ This tutorial demonstrates how to use SCT's command-line scripts to register an 
       # Output:
       # dmri  fmri  LICENSE.txt  mt  README.txt  t1  t2  t2s
 
-   .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord_segmentation/t2_image.png
+   .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/spinalcord_segmentation/t2_image.png
       :align: right
       :figwidth: 8%
 
@@ -44,7 +44,7 @@ This tutorial demonstrates how to use SCT's command-line scripts to register an 
 Segmenting the spinal cord
 **************************
 
-.. figure:: ../../../imgs/register/pipeline-1.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-1.png
    :align: center
    :figwidth: 75%
 
@@ -76,7 +76,7 @@ Command
    # Output files/folders:
    #   - t2_seg.nii.gz: 3D binary mask of the segmented spinal cord
 
-.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord_segmentation/t2_propseg_before_after.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/spinalcord_segmentation/t2_propseg_before_after.png
    :align: center
    :figwidth: 50%
 
@@ -87,7 +87,7 @@ Command
 Vertebral/disc labeling
 ***********************
 
-.. figure:: ../../../imgs/register/pipeline-2.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-2.png
    :align: center
    :figwidth: 75%
 
@@ -98,7 +98,7 @@ Theory
 
 Next, the segmented spinal cord must be labeled to provide reference markers for matching the PAM50 template to subject's MRI. Either the vertebral levels or intervertebral discs can be used for the later registration steps; both types of labels are generated here. For vertebral levels, the convention is to place labels as though the vertebrae were projected onto the spinal cord, centered in the middle of the vertebral level. For discs, the convention is to place labels on the posterior tip of the disc.
 
-.. figure:: ../../../imgs/register/p47.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/vertebral-labeling-conventions.png
    :align: center
    :figwidth: 25%
 
@@ -114,7 +114,7 @@ The vertebral/disc labeling algorithm works as follows.
 
 #. Finally, the spinal cord and the labeled segmentation are both un-straightened.
 
-.. figure:: ../../../imgs/register/p48-2.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/instrumentation-missing-discs.png
    :align: center
    :figwidth: 25%
 
@@ -156,7 +156,7 @@ Command
    #                          straight_ref.nii.gz and the two warping fields) will cause the straightening step to be
    #                          skipped, thus saving processing time.
 
-.. figure:: ../../../imgs/register/p57.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_label_vertebrae.png
    :align: center
    :figwidth: 50%
 
@@ -182,7 +182,7 @@ Not all of the labels produced by ``sct_label_vertebrae`` are necessary. To disc
    # Output files/folders:
    #   - t2_labels_vert.nii.gz: Image containing the 2 single-voxel vertebral labels
 
-.. figure:: ../../../imgs/register/p59.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_label_utils.png
    :align: center
    :figwidth: 50%
 
@@ -193,7 +193,7 @@ Not all of the labels produced by ``sct_label_vertebrae`` are necessary. To disc
 Registering the anatomical image to the PAM50 template
 ******************************************************
 
-.. figure:: ../../../imgs/register/pipeline-3.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-3.png
    :align: center
    :figwidth: 75%
 
@@ -204,7 +204,7 @@ Theory
 
 Now that we have the labeled spinal cord, we can register the anatomical image to the template.
 
-.. figure:: ../../../imgs/register/p50-1.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/thin-plate-straightening.png
    :align: right
    :figwidth: 30%
 
@@ -242,7 +242,7 @@ Command
    #   - warp_template2anat.nii.gz: The 4D warping field that defines the inverse transform from the template image to
    #                                the anatomical image.
 
-.. figure:: ../../../imgs/register/p61.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_register_to_template.png
    :align: center
    :figwidth: 50%
 
@@ -279,7 +279,7 @@ This long string of values defines a 3-step transformation. Each step is separat
 
 Typically, step 0 is not altered. However, Steps 1 and 2 can be tweaked, and additional steps (e.g. 3, 4) can be added. Some of the common parameters to tweak include:
 
-   .. figure:: ../../../imgs/register/p52.png
+   .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/sct_register_to_template-param-algo.png
       :align: right
       :figwidth: 40%
 
@@ -323,7 +323,7 @@ Conversely, if you have a very small FOV (e.g., covering only C3/C4), you can cr
 Transforming template objects into the subject space
 ****************************************************
 
-.. figure:: ../../../imgs/register/pipeline-4.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/registration-pipeline-4.png
    :align: center
    :figwidth: 75%
 
@@ -344,7 +344,7 @@ Command
    # Output:
    #   - label/template/: This directory contains the entirety of the PAM50 template, transformed into the subject space (i.e. the ``t2.nii.gz`` anatomical image).
 
-.. figure:: ../../../imgs/register/p67.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/io-sct_warp_template.png
    :align: center
    :figwidth: 50%
 
@@ -361,7 +361,7 @@ Once the PAM50 has been registered to the subject’s space, we can use it to do
 
 By default, sct_process_segmentation will output a file called csa.csv, which contains CSA results (mean and STD) as well as the angles between the cord centerline and the normal to the axial plane. Angle_AP corresponds to the angle about the AP axis, while angle_RL corresponds to the angle about the RL axis. These angles are used to correct the CSA, therefore if you obtain inconsistent CSA values, it it a good habit to verify the value of these angles.
 
-.. figure:: ../../../imgs/register/p68-edited.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/csa-angles.png
    :align: center
    :figwidth: 50%
 
@@ -425,7 +425,7 @@ Shape analysis
 
 The csv files generated by ``sct_process_segmentation`` also include metrics to analyse the shape of the spinal cord in the axial plane, such as ellipticity, antero-posterior and right-left dimensions. These are of particular interest for studying cord compression. See [Martin et al. BMJ Open 2018] for an example application in degenerative cervical myelopathy.
 
-.. figure:: ../../../imgs/register/p70-1.png
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/registration_to_template/sct_process_segmentation-shape-metrics.png
    :align: center
    :figwidth: 50%
 
