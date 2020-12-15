@@ -15,18 +15,26 @@ Warping fields (also known as deformation fields) are files that represent an im
    # Concatenate several warping fields into single warping field
    sct_concat_transfo -d out_warp.nii.gz -w in_warp1.nii.gz in_warp2.nii.gz [...]
 
-Warping fields are used throughout SCT:
+Warping fields are also used internally within several SCT tools:
 
-* When straightening a spinal cord image, two warping fields are created, which define the forward and inverse transformations between the curved anatomical image and the straightened image.
-* When registering a spinal cord image to a template, two warping fields are created, which define the forward and inverse transformations between the anatomical image space and the template space.
+* ``sct_straight_spinalcord``: When straightening a spinal cord image, two warping fields are created for the forward and inverse transformations between the curved anatomical image and the straightened image.
+* ``sct_register_to_template``: When registering a spinal cord image to a template, two warping fields are created for the forward and inverse transformations between the anatomical image space and the template space.
 
 Warping field conventions
 =========================
 
 In the broader ecosystem of MRI software, there are two common conventions for representing warping fields:
 
-* **5D composite format (``[x, y, z, t, v]``)**: Originates from Insight Toolkit (ITK), so it also referred to as the ITK format. This of warping field is used by SCT and Advanced Normalization Tools (ANTs). This format is defined by in the "Vector-Valued Datasets" section of the `NIFTI1 Specification <https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h>`_.
-* **4D vector format (``[x, y, z, v]``)**: Used by the FMRIB Software Library (FSL) and Statistical Parametric Mapping (SPM) software packages. This format is defined in the "Deformation model" section of the `FSLWiki <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT/UserGuide#Deformation_model>`_
+* **5D composite format**, ``[x, y, z, t, v]``:
+
+  * Originates from Insight Toolkit (ITK), so it also referred to as the ITK format.
+  * Used by SCT and Advanced Normalization Tools (ANTs).
+  * Defined in the "Vector-Valued Datasets" section of the `NIFTI1 Specification <https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h>`_.
+
+* **4D vector format**, ``[x, y, z, v]``:
+
+  * Used by the FMRIB Software Library (FSL) and Statistical Parametric Mapping (SPM) software packages.
+  * Defined in the "Deformation model" section of the `FSLWiki <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT/UserGuide#Deformation_model>`_
 
 For both formats, the ``v`` axis will be of size 3, with each index representing one component of the displacement vector. So, ``v=0`` refers to the ``x`` displacement for each ``[x, y, z]`` coordinate, ``v=1`` refers to the ``y`` displacement, and ``v=2`` refers to the ``z`` displacement.
 
