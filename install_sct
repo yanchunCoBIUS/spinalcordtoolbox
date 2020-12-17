@@ -170,7 +170,7 @@ function check_requirements() {
       done
       if [[ $GCC_INSTALL =~ [Yy](es)? ]]; then
         if [[ ! $(which brew) ]]; then
-          yes | /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+          yes | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
         fi
         yes | brew install gcc
         # check if gcc install ran properly
